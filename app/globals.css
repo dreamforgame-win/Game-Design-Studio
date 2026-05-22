@@ -1,0 +1,60 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark, .dark *));
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 2;
+}
+
+/* Custom React Flow Edge styles */
+.react-flow__edge-path {
+  stroke-width: 3px !important;
+  stroke: rgba(120, 113, 108, 0.35) !important; /* Gentle stone stroke */
+  transition: stroke-width 0.15s ease, stroke 0.15s ease, stroke-dasharray 0.15s ease;
+}
+
+.dark .react-flow__edge-path {
+  stroke: rgba(250, 250, 249, 0.25) !important;
+}
+
+/* Hover State */
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke-width: 4.5px !important;
+  stroke: #7c7267 !important;
+}
+
+.dark .react-flow__edge:hover .react-flow__edge-path {
+  stroke: #e7e5e4 !important;
+}
+
+/* Selected State */
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke-width: 4.5px !important;
+  stroke: #1c1917 !important;
+  stroke-dasharray: 0 !important;
+}
+
+.dark .react-flow__edge.selected .react-flow__edge-path {
+  stroke: #f5f5f4 !important;
+  stroke-dasharray: 0 !important;
+}
+
+/* Connection line currently being dragged */
+.react-flow__connection-path {
+  stroke-width: 3px !important;
+  stroke: #7c7267 !important;
+}
+
+.dark .react-flow__connection-path {
+  stroke: #d6d3d1 !important;
+}
+

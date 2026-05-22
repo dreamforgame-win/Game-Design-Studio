@@ -1,0 +1,6 @@
+{
+  "name": "Game Design Workspace v2",
+  "description": "An AI-native spatial workspace for game design thinking and structural planning.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
