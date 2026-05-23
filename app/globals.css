@@ -58,3 +58,115 @@
   stroke: #d6d3d1 !important;
 }
 
+/* Optimization for Markdown Prose / Typography Spacing (Game Design Workspace Industrial Minimalism) */
+.prose, .prose-sm {
+  line-height: 1.68 !important;
+}
+
+.prose {
+  font-size: 0.8125rem !important; /* 13px */
+}
+
+/* Compact headers spacing with balanced vertical breathing room */
+.prose h1, .prose-sm h1,
+.prose h2, .prose-sm h2,
+.prose h3, .prose-sm h3,
+.prose h4, .prose-sm h4,
+.prose h5, .prose-sm h5,
+.prose h6, .prose-sm h6 {
+  color: inherit !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.025em !important;
+}
+
+.prose h1, .prose-sm h1 {
+  margin-top: 1.35rem !important;
+  margin-bottom: 0.5rem !important;
+  font-size: 1.35rem !important;
+  line-height: 1.3 !important;
+}
+
+.prose h2, .prose-sm h2 {
+  margin-top: 1.15rem !important;
+  margin-bottom: 0.45rem !important;
+  font-size: 1.15rem !important;
+  line-height: 1.35 !important;
+}
+
+.prose h3, .prose-sm h3 {
+  margin-top: 1.0rem !important;
+  margin-bottom: 0.4rem !important;
+  font-size: 1.025rem !important;
+  line-height: 1.4 !important;
+}
+
+.prose h4, .prose-sm h4 {
+  margin-top: 0.85rem !important;
+  margin-bottom: 0.35rem !important;
+  font-size: 0.925rem !important;
+  line-height: 1.4 !important;
+}
+
+/* Perfect readable spacing for paragraphs, lists, and lists elements */
+.prose p, .prose-sm p {
+  margin-top: 0.55rem !important;
+  margin-bottom: 0.55rem !important;
+  line-height: 1.68 !important;
+}
+
+/* Lists and list items padding & margin */
+.prose ul, .prose-sm ul, .prose ol, .prose-sm ol {
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+  padding-left: 1.25rem !important;
+}
+
+.prose li, .prose-sm li {
+  margin-top: 0.25rem !important;
+  margin-bottom: 0.25rem !important;
+  line-height: 1.62 !important;
+}
+
+.prose li > p, .prose-sm li > p {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Links compact */
+.prose a, .prose-sm a {
+  text-decoration: underline !important;
+  text-underline-offset: 2px !important;
+}
+
+.prose blockquote, .prose-sm blockquote {
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+  padding-left: 0.75rem !important;
+  font-style: normal !important;
+  border-left-width: 3px !important;
+  border-left-color: rgba(120, 113, 108, 0.3) !important;
+}
+
+.dark .prose blockquote, .dark .prose-sm blockquote {
+  border-left-color: rgba(250, 250, 249, 0.2) !important;
+}
+
+.prose hr, .prose-sm hr {
+  margin-top: 0.75rem !important;
+  margin-bottom: 0.75rem !important;
+  border-color: rgba(120, 113, 108, 0.15) !important;
+}
+
+.dark .prose hr, .dark .prose-sm hr {
+  border-color: rgba(250, 250, 249, 0.1) !important;
+}
+
+.prose pre, .prose-sm pre {
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+  padding: 0.5rem 0.75rem !important;
+  border-radius: 0.375rem !important;
+  font-size: 0.75rem !important;
+}
+
+
