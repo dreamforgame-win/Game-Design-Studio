@@ -1,4 +1,5 @@
 import React, { useState, useEffect, memo, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Handle, Position, NodeProps, NodeResizer } from '@xyflow/react';
 import { Lightbulb, CircleHelp, Maximize2, Zap, CheckCircle2, Flag, Edit2, Image as ImageIcon, Link, Upload, Globe, AlertTriangle, ExternalLink, FileText, Download } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -53,6 +54,11 @@ const CustomNode = memo(function CustomNode({ data, id, selected }: NodeProps) {
     row: number;
     col: number;
   } | null>(null);
+
+  const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null);
+  const [selectedRow, setSelectedRow] = useState<number | null>(null);
+  const [selectedCol, setSelectedCol] = useState<number | null>(null);
+  const tableRef = React.useRef<HTMLTableElement | null>(null);
 
   if (webUrl !== prevWebUrl) {
     setPrevWebUrl(webUrl);
@@ -374,8 +380,13 @@ const CustomNode = memo(function CustomNode({ data, id, selected }: NodeProps) {
 
   // Close table context menu when clicking outside
   useEffect(() => {
-    const handleOutsideClick = () => {
+    const handleOutsideClick = (e: MouseEvent) => {
       setTableContextMenu(null);
+      if (tableRef.current && !tableRef.current.contains(e.target as Node)) {
+        setSelectedCell(null);
+        setSelectedRow(null);
+        setSelectedCol(null);
+      }
     };
     window.addEventListener('click', handleOutsideClick);
     return () => window.removeEventListener('click', handleOutsideClick);
@@ -536,6 +547,50 @@ const CustomNode = memo(function CustomNode({ data, id, selected }: NodeProps) {
   const imageUrl = data.imageUrl as string || '';
 
   const isScrollPriority = data.scrollPriority !== false;
+
+  const getCellSelectionStyle = (rIdx: number, cIdx: number) => {
+    const isSelectedCell = selectedCell?.row === rIdx && selectedCell?.col === cIdx;
+    const isSelectedRow = selectedRow === rIdx;
+    const isSelectedCol = selectedCol === cIdx;
+    
+    const shadows: string[] = [];
+    
+    if (isSelectedCell) {
+      // 4-side highlighted thick border
+      shadows.push('inset 0 0 0 2px #3b82f6');
+    } else {
+      // Check row selection outline
+      if (isSelectedRow) {
+        const isLeftmost = cIdx === -1;
+        const isRightmost = tableRows ? cIdx === tableRows[0]?.length - 1 : false;
+        
+        shadows.push('inset 0 2px 0 0 #3b82f6'); // top edge
+        shadows.push('inset 0 -2px 0 0 #3b82f6'); // bottom edge
+        if (isLeftmost) shadows.push('inset 2px 0 0 0 #3b82f6'); // leftmost edge
+        if (isRightmost) shadows.push('inset -2px 0 0 0 #3b82f6'); // rightmost edge
+      }
+      
+      // Check column selection outline
+      if (isSelectedCol) {
+        const isTopmost = rIdx === -1;
+        const isBottommost = tableRows ? rIdx === tableRows.length - 1 : false;
+        
+        shadows.push('inset 2px 0 0 0 #3b82f6'); // left edge
+        shadows.push('inset -2px 0 0 0 #3b82f6'); // right edge
+        if (isTopmost) shadows.push('inset 0 2px 0 0 #3b82f6'); // top edge
+        if (isBottommost) shadows.push('inset 0 -2px 0 0 #3b82f6'); // bottom edge
+      }
+    }
+    
+    if (shadows.length > 0) {
+      return { 
+        boxShadow: shadows.join(', '), 
+        position: 'relative' as const, 
+        zIndex: isSelectedCell ? 40 : 35 
+      };
+    }
+    return {};
+  };
 
   return (
     <div 
@@ -835,6 +890,7 @@ const CustomNode = memo(function CustomNode({ data, id, selected }: NodeProps) {
                     <div className="flex-1 overflow-auto border border-stone-200 dark:border-white/5 rounded-xl bg-stone-50/40 dark:bg-stone-900/10 min-h-0 relative">
                       <div className="relative pt-6 pl-6 pr-6 pb-6 w-max">
                         <table 
+                          ref={tableRef}
                           className="text-xs text-left border-separate border-spacing-0 select-text pointer-events-auto table-fixed"
                           style={{ 
                             width: tableRows && tableRows[0] 
@@ -850,12 +906,32 @@ const CustomNode = memo(function CustomNode({ data, id, selected }: NodeProps) {
                           </colgroup>
                           <thead className="bg-stone-150 dark:bg-stone-900 font-semibold text-stone-600 dark:text-stone-400 sticky top-0 z-30">
                             <tr>
-                              <th className="w-10 px-2 py-1.5 border-r border-b border-stone-250 dark:border-white/10 text-center bg-stone-150 dark:bg-stone-900 select-none sticky left-0 top-0 z-40">#</th>
+                              <th 
+                                onClick={() => {
+                                  setSelectedCell(null);
+                                  setSelectedRow(null);
+                                  setSelectedCol(null);
+                                }}
+                                className="w-10 px-2 py-1.5 border-r border-b border-stone-250 dark:border-white/10 text-center bg-stone-150 dark:bg-stone-900 select-none sticky left-0 top-0 z-40 cursor-pointer hover:bg-stone-200 dark:hover:bg-stone-800"
+                              >
+                                #
+                              </th>
                               {tableRows && tableRows[0]?.map((_, cIdx) => (
                                 <th 
                                   key={cIdx} 
                                   onContextMenu={(e) => handleTableContextMenu(e, -1, cIdx)}
-                                  className="px-3 py-1.5 border-r border-b border-stone-200 dark:border-white/5 bg-stone-100 dark:bg-stone-950 sticky top-0 z-30 relative group/col select-none hover:z-45"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedCol(cIdx);
+                                    setSelectedRow(null);
+                                    setSelectedCell(null);
+                                  }}
+                                  style={{ ...getCellSelectionStyle(-1, cIdx) }}
+                                  className={`px-3 py-1.5 border-r border-b border-stone-200 dark:border-white/5 ${
+                                    selectedCol === cIdx 
+                                      ? 'bg-blue-50/50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 font-bold' 
+                                      : 'bg-stone-100 dark:bg-stone-950 text-stone-600 dark:text-stone-400'
+                                  } sticky top-0 z-30 relative group/col select-none hover:z-45 cursor-pointer hover:bg-stone-200 dark:hover:bg-stone-850/85 transition-colors`}
                                 >
                                   <div className="flex items-center justify-between col-span-1">
                                     <span>{String.fromCharCode(65 + (cIdx % 26))}{cIdx >= 26 ? Math.floor(cIdx / 26) : ''}</span>
@@ -902,7 +978,18 @@ const CustomNode = memo(function CustomNode({ data, id, selected }: NodeProps) {
                               <tr key={rIdx} className="hover:bg-stone-100/30 dark:hover:bg-white/[0.02]">
                                 <td 
                                   onContextMenu={(e) => handleTableContextMenu(e, rIdx, -1)}
-                                  className="px-2 py-1.5 border-r border-b border-stone-200 dark:border-white/5 text-center bg-stone-100 dark:bg-stone-900 font-mono text-stone-400 font-semibold group/row relative select-none sticky left-0 z-20 hover:z-45"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedRow(rIdx);
+                                    setSelectedCol(null);
+                                    setSelectedCell(null);
+                                  }}
+                                  style={{ ...getCellSelectionStyle(rIdx, -1) }}
+                                  className={`px-2 py-1.5 border-r border-b border-stone-200 dark:border-white/5 text-center ${
+                                    selectedRow === rIdx 
+                                      ? 'bg-blue-50/50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 font-bold' 
+                                      : 'bg-stone-100 dark:bg-stone-900 text-stone-400'
+                                  } font-mono font-semibold group/row relative select-none sticky left-0 z-20 hover:z-45 cursor-pointer hover:bg-stone-200 dark:hover:bg-stone-850/85 transition-colors`}
                                 >
                                   <span>{rIdx + 1}</span>
 
@@ -928,34 +1015,51 @@ const CustomNode = memo(function CustomNode({ data, id, selected }: NodeProps) {
                                     </button>
                                   </div>
                                 </td>
-                                {row.map((cell, cIdx) => (
-                                  <td 
-                                    key={cIdx} 
-                                    className="border-r border-b border-stone-200 dark:border-white/5 min-w-[80px] bg-white dark:bg-[#1a1a1a]"
-                                    onContextMenu={(e) => handleTableContextMenu(e, rIdx, cIdx)}
-                                  >
-                                    {editingCell?.row === rIdx && editingCell?.col === cIdx ? (
-                                      <input
-                                        type="text"
-                                        className="nodrag w-full h-full px-3 py-1.5 border-none focus:outline-none focus:ring-0 text-xs bg-stone-150 dark:bg-white/10 text-stone-900 dark:text-white cursor-text block"
-                                        value={tempCellValue}
-                                        onChange={(e) => setTempCellValue(e.target.value)}
-                                        onBlur={saveCurrentCell}
-                                        onKeyDown={(e) => {
-                                          if (e.key === 'Enter') saveCurrentCell();
-                                        }}
-                                        autoFocus
-                                      />
-                                    ) : (
-                                      <div 
-                                        className="px-3 py-1.5 min-h-[28px] h-full flex items-center overflow-hidden text-ellipsis whitespace-nowrap cursor-text text-stone-700 dark:text-stone-200 font-medium"
-                                        onClick={() => startEditCell(rIdx, cIdx, cell)}
-                                      >
-                                        {cell !== '' ? cell : <span className="text-stone-300 dark:text-stone-600/50 italic text-[10px] select-none cursor-text">无数据</span>}
-                                      </div>
-                                    )}
-                                  </td>
-                                ))}
+                                {row.map((cell, cIdx) => {
+                                  const isSelected = selectedCell?.row === rIdx && selectedCell?.col === cIdx;
+                                  return (
+                                    <td 
+                                      key={cIdx} 
+                                      className="border-r border-b border-stone-200 dark:border-white/5 min-w-[80px] bg-white dark:bg-[#1a1a1a] hover:bg-blue-50/40 dark:hover:bg-blue-950/20 cursor-pointer transition-all duration-75 relative"
+                                      onContextMenu={(e) => handleTableContextMenu(e, rIdx, cIdx)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (isSelected) {
+                                          startEditCell(rIdx, cIdx, cell);
+                                        } else {
+                                          setSelectedCell({ row: rIdx, col: cIdx });
+                                          setSelectedRow(null);
+                                          setSelectedCol(null);
+                                        }
+                                      }}
+                                      onDoubleClick={(e) => {
+                                        e.stopPropagation();
+                                        startEditCell(rIdx, cIdx, cell);
+                                      }}
+                                      style={{ ...getCellSelectionStyle(rIdx, cIdx) }}
+                                    >
+                                      {editingCell?.row === rIdx && editingCell?.col === cIdx ? (
+                                        <input
+                                          type="text"
+                                          className="nodrag w-full h-full px-3 py-1.5 border-none focus:outline-none focus:ring-0 text-xs bg-stone-150 dark:bg-white/10 text-stone-900 dark:text-white cursor-text block"
+                                          value={tempCellValue}
+                                          onChange={(e) => setTempCellValue(e.target.value)}
+                                          onBlur={saveCurrentCell}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') saveCurrentCell();
+                                          }}
+                                          autoFocus
+                                        />
+                                      ) : (
+                                        <div 
+                                          className="px-3 py-1.5 min-h-[28px] h-full flex items-center overflow-hidden text-ellipsis whitespace-nowrap cursor-text text-stone-700 dark:text-stone-200 font-medium"
+                                        >
+                                          {cell !== '' ? cell : <span className="text-stone-300 dark:text-stone-600/50 italic text-[10px] select-none cursor-text">无数据</span>}
+                                        </div>
+                                      )}
+                                    </td>
+                                  );
+                                })}
                               </tr>
                             ))}
                           </tbody>
@@ -1021,14 +1125,15 @@ const CustomNode = memo(function CustomNode({ data, id, selected }: NodeProps) {
         </div>
       )}
 
-      {tableContextMenu && (
+      {tableContextMenu && typeof window !== 'undefined' && createPortal(
         <div 
-          className="fixed z-50 bg-white dark:bg-stone-900 border border-stone-200 dark:border-white/10 rounded-xl shadow-2xl p-1.5 flex flex-col min-w-[150px] animate-in zoom-in-95 fade-in duration-100 select-none cursor-default"
+          className="fixed z-[9999] bg-white dark:bg-stone-900 border border-stone-200 dark:border-white/10 rounded-xl shadow-2xl p-1.5 flex flex-col min-w-[150px] animate-in zoom-in-95 fade-in duration-100 select-none cursor-default"
           style={{ 
             left: tableContextMenu.x, 
             top: tableContextMenu.y 
           }}
           onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
         >
           {tableContextMenu.row !== -1 && (
             <>
@@ -1109,7 +1214,8 @@ const CustomNode = memo(function CustomNode({ data, id, selected }: NodeProps) {
               )}
             </>
           )}
-        </div>
+        </div>,
+        document.body
       )}
 
       <Handle type="source" position={Position.Right} id="source" className={`w-[10px] h-[10px] ${config.handle} transition-transform duration-200 rounded-full border-2 border-white dark:border-[#1a1a1a] -right-[5px] hover:![transform:translate(50%,-50%)_scale(1.5)] shadow-sm cursor-crosshair`} style={{ width: '10px', height: '10px' }} />

@@ -14,14 +14,15 @@ import {
   ReactFlowProvider,
   BackgroundVariant,
   useReactFlow,
-  useViewport
+  useViewport,
+  SelectionMode
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { v4 as uuidv4 } from 'uuid';
 import CustomNode, { NodeType } from './CustomNode';
 import { Lightbulb, CircleHelp, Maximize2, Zap, CheckCircle2, Flag, Download, FileText, Settings, Moon, Sun, Monitor, Hand, Undo2, Redo2, Type, Image as ImageIcon, Link, Upload, Library, Folder, Palette, Eraser, Compass, Focus, X, Minus, Plus, Trash, Lock, Unlock, ExternalLink, Globe, Eye, Code, PanelLeft, PanelRight, Move, Copy, Check } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { flushSync } from 'react-dom';
+import { flushSync, createPortal } from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
@@ -85,48 +86,53 @@ function ViewportControls({ showMiniMap, setShowMiniMap }: { showMiniMap: boolea
          </span>
          
          <button onClick={() => setShowShortcuts(true)} className="hover:text-stone-900 dark:hover:text-white transition-colors flex items-center justify-center w-10 h-10 rounded-lg hover:bg-stone-100 dark:hover:bg-white/10 ml-2">
-           <CircleHelp size={18} strokeWidth={2} />
-         </button>
-      </div>
+             <CircleHelp size={18} strokeWidth={2} />
+          </button>
+       </div>
 
-      {showShortcuts && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowShortcuts(false)}>
-           <div className="bg-[#1e1e1e] border border-white/10 rounded-xl p-6 w-[400px] shadow-2xl text-stone-200" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
-                 <h3 className="text-sm font-semibold text-white">快捷键</h3>
-                 <button onClick={() => setShowShortcuts(false)} className="text-stone-400 hover:text-white">
+       {showShortcuts && typeof window !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[300000] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowShortcuts(false)}>
+           <div className="bg-white dark:bg-[#151514] border border-stone-200/60 dark:border-white/10 rounded-xl p-6 w-[400px] shadow-2xl text-stone-700 dark:text-stone-200 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-stone-200 dark:border-white/10">
+                 <h3 className="text-sm font-semibold text-stone-900 dark:text-white">快捷键</h3>
+                 <button onClick={() => setShowShortcuts(false)} className="text-stone-400 hover:text-stone-900 dark:hover:text-white cursor-pointer transition-colors">
                    <X size={16} strokeWidth={2} />
                  </button>
               </div>
               
               <div className="space-y-4 text-[13px]">
                  <div className="flex justify-between">
-                    <span className="text-stone-300">拖动画布</span>
-                    <span className="text-stone-500">平移视图</span>
+                    <span className="text-stone-800 dark:text-stone-300">左键拖动 (空白区)</span>
+                    <span className="text-stone-500 dark:text-stone-400">平移 / 移动视图</span>
                  </div>
                  <div className="flex justify-between">
-                    <span className="text-stone-300">滚轮</span>
-                    <span className="text-stone-500">缩放画布</span>
+                    <span className="text-stone-800 dark:text-stone-300">Alt + 滚轮</span>
+                    <span className="text-stone-500 dark:text-stone-400">强制缩放画布 (每次 10%)</span>
                  </div>
                  <div className="flex justify-between">
-                    <span className="text-stone-300">Ctrl / Cmd + 拖动</span>
-                    <span className="text-stone-500">框选多个节点</span>
+                    <span className="text-stone-800 dark:text-stone-300">滚轮 (空白区)</span>
+                    <span className="text-stone-500 dark:text-stone-400">常规缩放画布 (每次 10%)</span>
                  </div>
                  <div className="flex justify-between">
-                    <span className="text-stone-300">Shift / Ctrl / Cmd + 点击</span>
-                    <span className="text-stone-500">追加选择节点</span>
+                    <span className="text-stone-800 dark:text-stone-300">Ctrl + 左键拖动</span>
+                    <span className="text-stone-500 dark:text-stone-400">一键框选多个元素 (节点与连接线)</span>
                  </div>
                  <div className="flex justify-between">
-                    <span className="text-stone-300">Ctrl / Cmd + C / V</span>
-                    <span className="text-stone-500">复制 / 粘贴节点</span>
+                    <span className="text-stone-800 dark:text-stone-300">Shift / Ctrl / Cmd + 点击</span>
+                    <span className="text-stone-500 dark:text-stone-400">追加选择 / 协同多选</span>
                  </div>
                  <div className="flex justify-between">
-                    <span className="text-stone-300">Delete</span>
-                    <span className="text-stone-500">删除选中</span>
+                    <span className="text-stone-800 dark:text-stone-300">Ctrl / Cmd + C / V</span>
+                    <span className="text-stone-500 dark:text-stone-400">复制 / 粘贴节点与连线</span>
+                 </div>
+                 <div className="flex justify-between">
+                    <span className="text-stone-800 dark:text-stone-300">Delete</span>
+                    <span className="text-stone-500 dark:text-stone-400">删除选中</span>
                  </div>
               </div>
            </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
@@ -147,6 +153,10 @@ export default function Workspace({ activeCanvasId, onUpdateCanvasStats }: Works
   const [docPos, setDocPos] = useState({ x: 200, y: 100 });
   const [docMode, setDocMode] = useState<'preview' | 'code'>('preview');
   const [copiedDoc, setCopiedDoc] = useState(false);
+
+  // States for copying/pasting nodes and tracking Alt key status
+  const [copiedBuffer, setCopiedBuffer] = useState<{ nodes: Node[]; edges: Edge[] } | null>(null);
+  const [altPressed, setAltPressed] = useState(false);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<{ nodes: Node[]; edges: Edge[] } | null>(null);
@@ -311,14 +321,54 @@ export default function Workspace({ activeCanvasId, onUpdateCanvasStats }: Works
   const [showSettings, setShowSettings] = useState(false);
   const [showMiniMap, setShowMiniMap] = useState(false);
   const [bgTexture, setBgTexture] = useState<'dots' | 'lines' | 'solid'>('dots');
+  const [nodeFontSize, setNodeFontSize] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('workspace-node-font-size');
+      if (saved) return parseInt(saved, 10);
+    }
+    return 13;
+  });
+  const [docFontSize, setDocFontSize] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('workspace-doc-font-size');
+      if (saved) return parseInt(saved, 10);
+    }
+    return 14;
+  });
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const isDark = mounted && resolvedTheme === 'dark';
+
+  useEffect(() => {
+    if (mounted) {
+      localStorage.setItem('workspace-node-font-size', nodeFontSize.toString());
+    }
+  }, [nodeFontSize, mounted]);
+
+  useEffect(() => {
+    if (mounted) {
+      localStorage.setItem('workspace-doc-font-size', docFontSize.toString());
+    }
+  }, [docFontSize, mounted]);
   
   // Multimedia tool states and refs
   const [showMediaMenu, setShowMediaMenu] = useState(false);
   const [replacingNodeId, setReplacingNodeId] = useState<string | null>(null);
   const mediaInputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const appendNode = useCallback((newNode: Node) => {
+    setNodes((nds) => {
+      const maxZ = nds.reduce((max, node) => {
+        const z = typeof node.zIndex === 'number' ? node.zIndex : 0;
+        return z > max ? z : max;
+      }, 0);
+      return nds.concat({
+        ...newNode,
+        zIndex: maxZ + 1
+      });
+    });
+  }, [setNodes]);
   
   const [defaultViewport] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -614,8 +664,8 @@ export default function Workspace({ activeCanvasId, onUpdateCanvasStats }: Works
       },
     };
     
-    setNodes((nds) => nds.concat(newNode));
-  }, [rfInstance, setNodes]);
+    appendNode(newNode);
+  }, [rfInstance, appendNode]);
 
   const addWebpageNode = useCallback((customPos?: { x: number; y: number }) => {
     const id = uuidv4();
@@ -638,8 +688,8 @@ export default function Workspace({ activeCanvasId, onUpdateCanvasStats }: Works
       },
     };
     
-    setNodes((nds) => nds.concat(newNode));
-  }, [rfInstance, setNodes]);
+    appendNode(newNode);
+  }, [rfInstance, appendNode]);
 
   const addFileNode = useCallback((customPos?: { x: number; y: number }) => {
     const id = uuidv4();
@@ -665,8 +715,8 @@ export default function Workspace({ activeCanvasId, onUpdateCanvasStats }: Works
       },
     };
     
-    setNodes((nds) => nds.concat(newNode));
-  }, [rfInstance, setNodes]);
+    appendNode(newNode);
+  }, [rfInstance, appendNode]);
 
   const addNodeAtPosition = useCallback((type: NodeType | 'image' | 'webpage' | 'file', flowX: number, flowY: number) => {
     if (type === 'image') {
@@ -693,8 +743,8 @@ export default function Workspace({ activeCanvasId, onUpdateCanvasStats }: Works
       style: { width: 360, height: 180 },
       data: { nodeType: type, content: '' },
     };
-    setNodes((nds) => nds.concat(newNode));
-  }, [addWebpageNode, addFileNode, setNodes]);
+    appendNode(newNode);
+  }, [addWebpageNode, addFileNode, appendNode]);
 
   const handleMediaFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -766,6 +816,103 @@ export default function Workspace({ activeCanvasId, onUpdateCanvasStats }: Works
     return () => window.removeEventListener('paste', handleGlobalPaste);
   }, [createImageNode]);
 
+  // Global keydown/keyup listener to coordinate Ctrl+C, Ctrl+V, Alt key pan activation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // If user is focused on typing elements, ignore
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable ||
+        target.closest('.nowheel') ||
+        target.closest('[contenteditable="true"]')
+      ) {
+        return;
+      }
+
+      if (e.key === 'Alt') {
+        setAltPressed(true);
+      }
+
+      // Copy: Ctrl/Cmd + C
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        const selectedNodes = nodes.filter((n) => n.selected);
+        if (selectedNodes.length > 0) {
+          const selectedNodeIds = new Set(selectedNodes.map((n) => n.id));
+          const selectedEdges = edges.filter(
+            (edge) => selectedNodeIds.has(edge.source) && selectedNodeIds.has(edge.target)
+          );
+          setCopiedBuffer({
+            nodes: JSON.parse(JSON.stringify(selectedNodes)),
+            edges: JSON.parse(JSON.stringify(selectedEdges)),
+          });
+        }
+      }
+
+      // Paste: Ctrl/Cmd + V
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
+        e.preventDefault();
+        if (copiedBuffer && copiedBuffer.nodes.length > 0) {
+          const idMap = new Map<string, string>();
+          const newNodes = copiedBuffer.nodes.map((n) => {
+            const newId = uuidv4();
+            idMap.set(n.id, newId);
+            return {
+              ...n,
+              id: newId,
+              selected: true,
+              position: {
+                x: n.position.x + 40,
+                y: n.position.y + 40,
+              },
+            };
+          });
+
+          // Deselect previous elements
+          setNodes((nds) =>
+            nds.map((n) => ({ ...n, selected: false })).concat(newNodes)
+          );
+
+          // Map edges to new node IDs
+          const newEdges = copiedBuffer.edges.map((edge) => ({
+            ...edge,
+            id: uuidv4(),
+            source: idMap.get(edge.source) || edge.source,
+            target: idMap.get(edge.target) || edge.target,
+            selected: true,
+            style: { ...edge.style, stroke: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)' }
+          }));
+
+          setEdges((eds) =>
+            eds.map((edge) => ({ ...edge, selected: false })).concat(newEdges)
+          );
+        }
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Alt') {
+        setAltPressed(false);
+      }
+    };
+
+    const handleBlur = () => {
+      setAltPressed(false);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [nodes, edges, copiedBuffer, isDark, setNodes, setEdges]);
+
   const onNodeDelete = useCallback((id: string) => {
     const nodeToDelete = nodes.find((n) => n.id === id);
     if (nodeToDelete) {
@@ -811,7 +958,7 @@ export default function Workspace({ activeCanvasId, onUpdateCanvasStats }: Works
       data: nodeData,
     };
 
-    setNodes((nds) => nds.concat(newNode));
+    appendNode(newNode);
 
     const isSource = dropMenu.sourceHandleType === 'source';
     const newEdge: Edge = {
@@ -826,7 +973,7 @@ export default function Workspace({ activeCanvasId, onUpdateCanvasStats }: Works
 
     setEdges((eds) => eds.concat(newEdge));
     setDropMenu(null);
-  }, [dropMenu, setNodes, setEdges, isDark]);
+  }, [dropMenu, appendNode, setEdges, isDark]);
 
   // Augment nodes with callbacks
   const augNodes = useMemo(() => {
@@ -854,7 +1001,7 @@ export default function Workspace({ activeCanvasId, onUpdateCanvasStats }: Works
       data: { nodeType: type, content: '' },
     };
     
-    setNodes((nds) => nds.concat(newNode));
+    appendNode(newNode);
   };
 
   const generateDocument = () => {
@@ -1013,11 +1160,167 @@ export default function Workspace({ activeCanvasId, onUpdateCanvasStats }: Works
     })));
   }, [isDark, setEdges]);
 
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      setShowMediaMenu(false);
+      setShowSettings(false);
+    };
+    window.addEventListener('click', handleGlobalClick);
+    return () => window.removeEventListener('click', handleGlobalClick);
+  }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // 1. If holding Alt key, ALWAYS zoom the canvas!
+      // This takes precedence over everything, including inputs and "nowheel" nodes
+      if (e.altKey) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!rfInstance) return;
+
+        const currentViewport = rfInstance.getViewport();
+        // Scale by exactly 10% (1.10x zoom in, 0.90x zoom out)
+        const zoomFactor = e.deltaY < 0 ? 1.10 : 0.90;
+        const newZoom = Math.min(2, Math.max(0.1, currentViewport.zoom * zoomFactor));
+
+        const rect = container.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        // Flow coordinates of mouse
+        const flowMouseX = (mouseX - currentViewport.x) / currentViewport.zoom;
+        const flowMouseY = (mouseY - currentViewport.y) / currentViewport.zoom;
+
+        // Offset calculation
+        const nextX = mouseX - flowMouseX * newZoom;
+        const nextY = mouseY - flowMouseY * newZoom;
+
+        rfInstance.setViewport({ x: nextX, y: nextY, zoom: newZoom });
+        return;
+      }
+
+      // 2. If NOT holding Alt key AND we are over the pane or a non-scrollable element,
+      // we can zoom by exactly 10%
+      const target = e.target as HTMLElement;
+      const isNowheel = target.closest('.nowheel') || target.closest('input') || target.closest('textarea') || target.closest('select') || target.closest('table') || target.closest('.overflow-auto');
+      
+      if (!isNowheel) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!rfInstance) return;
+
+        const currentViewport = rfInstance.getViewport();
+        const zoomFactor = e.deltaY < 0 ? 1.10 : 0.90;
+        const newZoom = Math.min(2, Math.max(0.1, currentViewport.zoom * zoomFactor));
+
+        const rect = container.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const flowMouseX = (mouseX - currentViewport.x) / currentViewport.zoom;
+        const flowMouseY = (mouseY - currentViewport.y) / currentViewport.zoom;
+
+        const nextX = mouseX - flowMouseX * newZoom;
+        const nextY = mouseY - flowMouseY * newZoom;
+
+        rfInstance.setViewport({ x: nextX, y: nextY, zoom: newZoom });
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { capture: true, passive: false });
+    return () => {
+      container.removeEventListener('wheel', handleWheel, { capture: true });
+    };
+  }, [rfInstance]);
+
+  // Track selection rectangle and update edge selection in real-time
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleSelectionDrag = (e: MouseEvent | TouchEvent) => {
+      // Find the React Flow selection rectangle element in the DOM
+      const selectionRectEl = container.querySelector('.react-flow__selection');
+      if (!selectionRectEl) return;
+
+      const selectionRect = selectionRectEl.getBoundingClientRect();
+      if (selectionRect.width === 0 || selectionRect.height === 0) return;
+
+      // Check if multi-select is active (Shift or Ctrl/Cmd or Alt)
+      let isMultiSelect = false;
+      if ('shiftKey' in e) {
+        isMultiSelect = e.shiftKey || e.ctrlKey || e.metaKey || e.altKey;
+      }
+
+      const edgeEls = container.querySelectorAll('.react-flow__edge');
+      const overlappingEdgeIds = new Set<string>();
+
+      edgeEls.forEach((edgeEl) => {
+        const edgeId = edgeEl.getAttribute('data-id');
+        if (!edgeId) return;
+
+        // Query the SVG path element inside the edge group for layout boundaries
+        const edgePathEl = edgeEl.querySelector('path.react-flow__edge-path');
+        const rect = (edgePathEl || edgeEl).getBoundingClientRect();
+
+        // Check intersection of rects
+        const overlap = !(
+          selectionRect.right < rect.left ||
+          selectionRect.left > rect.right ||
+          selectionRect.bottom < rect.top ||
+          selectionRect.top > rect.bottom
+        );
+
+        if (overlap) {
+          overlappingEdgeIds.add(edgeId);
+        }
+      });
+
+      setEdges((prevEdges) => {
+        let changed = false;
+        const newEdges = prevEdges.map((edge) => {
+          const shouldBeSelected = overlappingEdgeIds.has(edge.id) || (isMultiSelect && edge.selected);
+          if (!!edge.selected !== shouldBeSelected) {
+            changed = true;
+            return { ...edge, selected: shouldBeSelected };
+          }
+          return edge;
+        });
+        return changed ? newEdges : prevEdges;
+      });
+    };
+
+    window.addEventListener('mousemove', handleSelectionDrag, { capture: true });
+    window.addEventListener('touchmove', handleSelectionDrag, { capture: true });
+    return () => {
+      window.removeEventListener('mousemove', handleSelectionDrag, { capture: true });
+      window.removeEventListener('touchmove', handleSelectionDrag, { capture: true });
+    };
+  }, [setEdges]);
+
   return (
-    <div className="w-full h-full relative bg-stone-50 dark:bg-[#0c0c0c]">
+    <div 
+      ref={containerRef}
+      className="w-full h-full relative bg-stone-50 dark:bg-[#0c0c0c]"
+      style={{
+        '--node-font-size': `${nodeFontSize}px`,
+        '--doc-font-size': `${docFontSize}px`,
+      } as React.CSSProperties}
+    >
       <ReactFlow
         nodes={augNodes}
         edges={edges}
+        zoomOnDoubleClick={false}
+        zoomOnScroll={false}
+        panOnDrag={true}
+        selectionOnDrag={true}
+        selectionKeyCode={['Control', 'Meta']}
+        selectionMode={SelectionMode.Partial}
+        multiSelectionKeyCode={['Shift', 'Control', 'Meta', 'Alt']}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
@@ -1056,8 +1359,8 @@ export default function Workspace({ activeCanvasId, onUpdateCanvasStats }: Works
       </ReactFlow>
 
       {/* Custom Delete Confirmation Dialog Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-[200000] flex items-center justify-center bg-black/50 dark:bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+      {showDeleteConfirm && typeof window !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[300000] flex items-center justify-center bg-black/50 dark:bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-sm bg-white dark:bg-[#151514] border border-stone-200/60 dark:border-white/10 rounded-2xl p-6 shadow-2xl flex flex-col gap-4.5 animate-in zoom-in-95 duration-200">
             <div className="flex items-start gap-3.5">
               <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0">
@@ -1127,7 +1430,8 @@ export default function Workspace({ activeCanvasId, onUpdateCanvasStats }: Works
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Context Menu Popup */}
@@ -1552,7 +1856,8 @@ export default function Workspace({ activeCanvasId, onUpdateCanvasStats }: Works
         
         {/* Component Dropdown Menu */}
         <ToolbarButton 
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             setShowMediaMenu(!showMediaMenu);
             setShowSettings(false);
           }} 
@@ -1563,7 +1868,8 @@ export default function Workspace({ activeCanvasId, onUpdateCanvasStats }: Works
 
         <div className="w-px h-6 bg-stone-200 dark:bg-white/10 mx-1"></div>
         <ToolbarButton 
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             setShowSettings(!showSettings);
             setShowMediaMenu(false);
           }} 
@@ -1572,7 +1878,8 @@ export default function Workspace({ activeCanvasId, onUpdateCanvasStats }: Works
           isActive={showSettings} 
         />
         <ToolbarButton 
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             setShowDoc(!showDoc);
             setShowMediaMenu(false);
             setShowSettings(false);
@@ -1592,7 +1899,11 @@ export default function Workspace({ activeCanvasId, onUpdateCanvasStats }: Works
       />
 
       {showMediaMenu && (
-        <div className="absolute bottom-24 left-1/2 ml-[88px] -translate-x-1/2 z-[100] w-[260px] bg-white/95 dark:bg-stone-900/95 backdrop-blur-2xl border border-stone-200/50 dark:border-white/10 rounded-2xl shadow-2xl p-5 origin-bottom animate-in zoom-in-95 fade-in duration-200 overflow-hidden">
+        <div 
+          onClick={(e) => e.stopPropagation()} 
+          onMouseDown={(e) => e.stopPropagation()}
+          className="absolute bottom-24 left-1/2 ml-[88px] -translate-x-1/2 z-[100] w-[260px] bg-white/95 dark:bg-stone-900/95 backdrop-blur-2xl border border-stone-200/50 dark:border-white/10 rounded-2xl shadow-2xl p-5 origin-bottom animate-in zoom-in-95 fade-in duration-200 overflow-hidden"
+        >
            <div className="mb-4">
               <h3 className="text-[13px] font-medium text-stone-500 dark:text-stone-400">功能组件</h3>
            </div>
@@ -1641,7 +1952,11 @@ export default function Workspace({ activeCanvasId, onUpdateCanvasStats }: Works
       )}
 
       {showSettings && (
-          <div className="absolute bottom-24 left-1/2 ml-[149px] -translate-x-1/2 z-[100] w-[260px] bg-white/95 dark:bg-stone-900/95 backdrop-blur-2xl border border-stone-200/50 dark:border-white/10 rounded-2xl shadow-2xl p-5 origin-bottom animate-in zoom-in-95 fade-in duration-200 overflow-hidden">
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            onMouseDown={(e) => e.stopPropagation()}
+            className="absolute bottom-24 left-1/2 ml-[149px] -translate-x-1/2 z-[100] w-[260px] bg-white/95 dark:bg-stone-900/95 backdrop-blur-2xl border border-stone-200/50 dark:border-white/10 rounded-2xl shadow-2xl p-5 origin-bottom animate-in zoom-in-95 fade-in duration-200 overflow-hidden"
+          >
              <div className="mb-5">
                 <h3 className="text-[13px] font-medium mb-3 text-stone-500 dark:text-stone-400">主题模式</h3>
                 {mounted && (
@@ -1683,6 +1998,49 @@ export default function Workspace({ activeCanvasId, onUpdateCanvasStats }: Works
                   >
                     ☐ 空白
                   </button>
+                </div>
+             </div>
+
+             <div className="mt-5 pt-5 border-t border-stone-200/50 dark:border-white/10">
+                <h3 className="text-[13px] font-medium mb-3 text-stone-500 dark:text-stone-400">字号调整</h3>
+                <div className="flex flex-col gap-3.5">
+                   <div className="flex items-center justify-between">
+                      <span className="text-xs text-stone-600 dark:text-stone-300 font-medium">画布节点</span>
+                      <div className="flex items-center gap-2">
+                         <button
+                            onClick={() => setNodeFontSize(prev => Math.max(11, prev - 1))}
+                            className="w-6 h-6 rounded-md bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 flex items-center justify-center text-xs text-stone-500 dark:text-stone-400 cursor-pointer transition-colors font-semibold"
+                         >
+                            -
+                         </button>
+                         <span className="text-xs font-mono w-9 text-center text-stone-700 dark:text-stone-200 font-medium">{nodeFontSize}px</span>
+                         <button
+                            onClick={() => setNodeFontSize(prev => Math.min(18, prev + 1))}
+                            className="w-6 h-6 rounded-md bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 flex items-center justify-center text-xs text-stone-500 dark:text-stone-400 cursor-pointer transition-colors font-semibold"
+                         >
+                            +
+                         </button>
+                      </div>
+                   </div>
+
+                   <div className="flex items-center justify-between">
+                      <span className="text-xs text-stone-600 dark:text-stone-300 font-medium">设计文档</span>
+                      <div className="flex items-center gap-2">
+                         <button
+                            onClick={() => setDocFontSize(prev => Math.max(12, prev - 1))}
+                            className="w-6 h-6 rounded-md bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 flex items-center justify-center text-xs text-stone-500 dark:text-stone-400 cursor-pointer transition-colors font-semibold"
+                         >
+                            -
+                         </button>
+                         <span className="text-xs font-mono w-9 text-center text-stone-700 dark:text-stone-200 font-medium">{docFontSize}px</span>
+                         <button
+                            onClick={() => setDocFontSize(prev => Math.min(24, prev + 1))}
+                            className="w-6 h-6 rounded-md bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 flex items-center justify-center text-xs text-stone-500 dark:text-stone-400 cursor-pointer transition-colors font-semibold"
+                         >
+                            +
+                         </button>
+                      </div>
+                   </div>
                 </div>
              </div>
           </div>
@@ -1872,7 +2230,7 @@ export default function Workspace({ activeCanvasId, onUpdateCanvasStats }: Works
   );
 }
 
-function ToolbarButton({ onClick, icon, color, label, isActive }: { onClick: () => void, icon: React.ReactNode, color?: string, label: string, isActive?: boolean }) {
+function ToolbarButton({ onClick, icon, color, label, isActive }: { onClick: (e: React.MouseEvent) => void, icon: React.ReactNode, color?: string, label: string, isActive?: boolean }) {
   return (
     <button 
       onClick={onClick} 

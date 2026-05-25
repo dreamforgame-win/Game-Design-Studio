@@ -169,4 +169,37 @@
   font-size: 0.75rem !important;
 }
 
+/* ==========================================
+   游戏设计工作台：节点与文档字号精准控制
+   ========================================== */
+.react-flow__node-custom {
+  font-size: var(--node-font-size, 13px) !important;
+}
+
+.react-flow__node-custom .prose,
+.react-flow__node-custom .prose-sm,
+.react-flow__node-custom .prose p,
+.react-flow__node-custom .prose li,
+.react-flow__node-custom .prose-sm p,
+.react-flow__node-custom .prose-sm li {
+  font-size: var(--node-font-size, 13px) !important;
+}
+
+.react-flow__node-custom input,
+.react-flow__node-custom textarea,
+.react-flow__node-custom select {
+  font-size: var(--node-font-size, 13px) !important;
+}
+
+/* 设计文档字号自适应 */
+#design-doc-popup .prose {
+  font-size: var(--doc-font-size, 14px) !important;
+}
+
+#design-doc-popup .prose p,
+#design-doc-popup .prose li {
+  font-size: var(--doc-font-size, 14px) !important;
+}
+
+
 

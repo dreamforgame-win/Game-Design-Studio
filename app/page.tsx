@@ -173,6 +173,7 @@ export default function Page() {
          canvases={canvases}
          onAddCanvas={handleCreateNewCanvas}
          onDeleteCanvas={handleDeleteCanvas}
+         onRenameCanvas={handleRenameCanvas}
        />
 
        <main className="w-full h-full relative">

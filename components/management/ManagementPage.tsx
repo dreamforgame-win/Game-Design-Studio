@@ -140,9 +140,6 @@ export function ManagementPage({
                 {isSelectionMode ? '取消选择' : '选择沙盘'}
               </button>
               
-              <button className="flex items-center gap-2 px-4 py-2 border border-stone-200 dark:border-white/10 hover:bg-stone-100 dark:hover:bg-white/5 rounded-lg text-sm font-medium transition-colors text-stone-700 dark:text-stone-300 cursor-pointer">
-                <Upload size={14} strokeWidth={2} /> 载入存档
-              </button>
               <button 
                 onClick={onAddCanvas}
                 className="flex items-center gap-2 px-4 py-2 bg-stone-200 hover:bg-stone-300 dark:bg-white dark:hover:bg-stone-200 text-stone-900 rounded-lg text-sm font-medium transition-colors cursor-pointer"
@@ -159,9 +156,10 @@ export function ManagementPage({
             return (
               <div 
                 key={canvas.id}
-                onClick={() => handleCardClick(canvas.id)}
-                onDoubleClick={() => {
-                  if (!isSelectionMode && editingId !== canvas.id) {
+                onClick={(e) => {
+                  if (isSelectionMode) {
+                    handleCardClick(canvas.id);
+                  } else if (editingId !== canvas.id) {
                     onViewChange('workspace', canvas.id);
                   }
                 }}
