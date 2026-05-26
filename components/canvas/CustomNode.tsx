@@ -1,7 +1,7 @@
 import React, { useState, useEffect, memo, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position, NodeProps, NodeResizer } from '@xyflow/react';
-import { Lightbulb, CircleHelp, Maximize2, Zap, CheckCircle2, Flag, Edit2, Image as ImageIcon, Link, Upload, Globe, AlertTriangle, ExternalLink, FileText, Download } from 'lucide-react';
+import { Lightbulb, CircleHelp, Maximize2, Zap, CheckCircle2, Flag, Edit2, Image as ImageIcon, Link, Upload, Globe, AlertTriangle, ExternalLink, FileText, Download, Sparkles, Send, X, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
@@ -59,6 +59,144 @@ const CustomNode = memo(function CustomNode({ data, id, selected }: NodeProps) {
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
   const [selectedCol, setSelectedCol] = useState<number | null>(null);
   const tableRef = React.useRef<HTMLTableElement | null>(null);
+
+  const [showApiInput, setShowApiInput] = useState(false);
+  const [apiPrompt, setApiPrompt] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleApiProcess = async () => {
+    if (!apiPrompt.trim()) return;
+    setIsProcessing(true);
+    try {
+      const apiUrl = localStorage.getItem('ai_api_url') || 'https://api.openai.com/v1';
+      const apiKey = localStorage.getItem('ai_api_key') || '';
+      const aiModel = localStorage.getItem('ai_text_model') || 'gpt-4o-mini';
+
+      let fetchUrl = apiUrl.trim();
+      let isGemini = false;
+      let requestBody: any = {
+        model: aiModel,
+        messages: [{ role: "user", content: `指令: ${apiPrompt}\n当前节点内容参考:\n${content.slice(0, 2000)}` }]
+      };
+      let headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (fetchUrl.includes('generativelanguage.googleapis.com')) {
+        isGemini = true;
+        let baseUrl = fetchUrl;
+        if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+        if (baseUrl.includes('/chat/completions')) {
+           baseUrl = baseUrl.replace('/chat/completions', '');
+        }
+        if (baseUrl.endsWith('/v1beta/models')) baseUrl = baseUrl.replace('/v1beta/models', '');
+        if (baseUrl.endsWith('/v1/models')) baseUrl = baseUrl.replace('/v1/models', '');
+        if (baseUrl.endsWith('/models')) baseUrl = baseUrl.replace('/models', '');
+        if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+        
+        fetchUrl = `${baseUrl}/v1beta/models/${aiModel}:generateContent?key=${apiKey.trim()}`;
+        requestBody = {
+          contents: [{ parts: [{ text: `指令: ${apiPrompt}\n当前节点内容参考:\n${content.slice(0, 2000)}` }] }]
+        };
+      } else {
+        if (!fetchUrl.endsWith('/chat/completions')) {
+          if (fetchUrl.endsWith('/')) fetchUrl += 'chat/completions';
+          else fetchUrl += '/chat/completions';
+        }
+        if (apiKey.trim()) {
+          headers['Authorization'] = `Bearer ${apiKey.trim()}`;
+        }
+      }
+
+      let responseText = "";
+      let resStatus = 0;
+
+      // 1. Try Direct Browser Fetch First (works if CORS is allowed and bypasses GCP server blocking)
+      try {
+        const directHeaders = { ...headers };
+        const directRes = await fetch(fetchUrl, {
+          method: 'POST',
+          headers: directHeaders,
+          body: JSON.stringify(requestBody)
+        });
+        resStatus = directRes.status;
+        responseText = await directRes.text();
+      } catch (directError: any) {
+        console.warn("直接通过浏览器发起的请求失败 (跨域拦截或本地代理问题)，将尝试通过 GCP 服务器代理转发:", directError.message);
+        
+        // 2. Fallback to server-side proxy
+        const res = await fetch('/api/proxy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            url: fetchUrl,
+            method: 'POST',
+            headers,
+            body: JSON.stringify(requestBody)
+          })
+        });
+        resStatus = res.status;
+        responseText = await res.text();
+      }
+
+      if (resStatus < 200 || resStatus >= 300) {
+         let errorDetail = responseText.slice(0, 500);
+         try {
+             const errJson = JSON.parse(responseText);
+             if (errJson.error && errJson.error.message) {
+                 errorDetail = errJson.error.message;
+                 if (errJson.error.details && (errJson.error.details.includes('ConnectTimeoutError') || errJson.error.details.includes('fetch failed'))) {
+                     errorDetail = "目标接口响应超时或拒绝连接，通常是因为自建代理网关 (如 dianchu.cc 等) 拦截了境外云服务 (GCP) 的访问。";
+                 } else if (errJson.error.details) {
+                     errorDetail += " - " + errJson.error.details.slice(0, 100);
+                 }
+             }
+         } catch(e) {}
+
+         if (responseText.trim().startsWith('<')) {
+            errorDetail = "接口返回了 HTML 页面而非 JSON 数据。这通常意味着所在网络拦截了境外云服务器端访问，或网关地址配置有误。";
+         }
+         throw new Error(`API 返回错误 (HTTP ${resStatus}): ${errorDetail}`);
+      }
+
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (e: any) {
+        if (responseText.trim().startsWith('<')) {
+           throw new Error("接口被拦截，返回了 HTML 页面而非 JSON 数据。请检查接口地址是否正确，或目标网关是否屏蔽了境外服务器。");
+        }
+        throw new Error("解析接口返回内容失败。收到非 JSON 数据: " + responseText.slice(0, 100));
+      }
+      let aiText = '';
+      if (isGemini) {
+        aiText = responseData.candidates?.[0]?.content?.parts?.[0]?.text || "接口返回中未找到正文。";
+      } else {
+        aiText = responseData.choices?.[0]?.message?.content || "接口返回中未找到正文。";
+      }
+
+      const newContent = content + (content ? '\n\n' : '') + `> [!tip] AI 助手解析处理: ${apiPrompt}\n${aiText}`;
+      setContent(newContent);
+      if (data.onChange) {
+        // @ts-ignore
+        data.onChange(id, newContent, title);
+      }
+    } catch (err: any) {
+      console.error(err);
+      const newContent = content + (content ? '\n\n' : '') + `> [!warning] AI 接口请求失败 (${apiPrompt}):\n${err.message}`;
+      setContent(newContent);
+      if (data.onChange) {
+        // @ts-ignore
+        data.onChange(id, newContent, title);
+      }
+    } finally {
+      setIsProcessing(false);
+      setShowApiInput(false);
+      setApiPrompt('');
+    }
+  };
 
   if (webUrl !== prevWebUrl) {
     setPrevWebUrl(webUrl);
@@ -617,6 +755,47 @@ const CustomNode = memo(function CustomNode({ data, id, selected }: NodeProps) {
 
       <Handle type="target" position={Position.Left} id="target" className={`w-[10px] h-[10px] ${config.handle} transition-transform duration-200 rounded-full border-2 border-white dark:border-[#1a1a1a] -left-[5px] hover:![transform:translate(-50%,-50%)_scale(1.5)] shadow-sm cursor-crosshair`} style={{ width: '10px', height: '10px' }} />
       
+      {/* AI Process Button on Hover */}
+      <div className={`absolute -top-12 right-4 z-50 transition-opacity duration-200 nodrag nowheel ${showApiInput ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+        {!showApiInput ? (
+          <button
+            onClick={() => setShowApiInput(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-xs font-semibold shadow-xl border border-stone-800 dark:border-stone-200 hover:scale-105 hover:shadow-2xl transition-all"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            处理 (Test)
+          </button>
+        ) : (
+          <div className="flex items-center gap-2 bg-white dark:bg-stone-800 p-2 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.2)] border border-stone-200 dark:border-stone-700">
+            <input
+              type="text"
+              autoFocus
+              placeholder="输入指令..."
+              value={apiPrompt}
+              onChange={(e) => setApiPrompt(e.target.value)}
+              className="px-3 py-1.5 text-sm bg-stone-100 dark:bg-stone-900 rounded-lg outline-none w-56 font-medium text-stone-800 dark:text-stone-200 border border-transparent focus:border-blue-500 transition-colors placeholder:text-stone-400"
+              onKeyDown={(e) => {
+                 if (e.key === 'Enter') handleApiProcess();
+                 if (e.key === 'Escape') setShowApiInput(false);
+              }}
+            />
+            <button
+              onClick={handleApiProcess}
+              disabled={isProcessing || !apiPrompt.trim()}
+              className="p-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center justify-center min-w-[32px]"
+            >
+              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={() => setShowApiInput(false)}
+              className="p-1.5 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-500 dark:text-stone-400 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Header */}
       <div className={`px-4 py-3 border-b border-black/5 dark:border-white/5 flex items-center justify-between rounded-t-2xl shrink-0 ${config.headerBg}`}>
         <div className={`flex items-center space-x-3`}>
